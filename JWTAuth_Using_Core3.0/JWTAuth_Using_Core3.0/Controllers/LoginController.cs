@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using JWTAuth_Using_Core3._0.Models;
+﻿using JWTAuth_Using_Core3._0.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
+using System.Text;
 
 namespace JWTAuth_Using_Core3._0.Controllers
 {
@@ -20,7 +18,7 @@ namespace JWTAuth_Using_Core3._0.Controllers
     public class LoginController : ControllerBase
     {
         private IConfiguration _config;
-
+        UserInfoDAL userInfoDAL = new UserInfoDAL();
         public LoginController(IConfiguration config)
         {
             _config = config;
@@ -30,7 +28,7 @@ namespace JWTAuth_Using_Core3._0.Controllers
         {
             UserModel login = new UserModel
             {
-                UserName = userName,
+                LoginId = userName,
                 Password = password
             };
             IActionResult response = Unauthorized();
@@ -54,7 +52,9 @@ namespace JWTAuth_Using_Core3._0.Controllers
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userInfo.UserName),
                 new Claim(JwtRegisteredClaimNames.Email, userInfo.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Role, userInfo.RoleName)
+                //new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             var token = new JwtSecurityToken(
@@ -72,15 +72,15 @@ namespace JWTAuth_Using_Core3._0.Controllers
 
         private UserModel AuthenticateUser(UserModel login)
         {
-            UserModel user = null;
+            UserModel user = userInfoDAL.GetLoginUser(login);
             //For Demo I m using static User Info
-            if(login.UserName == "vk" && login.Password == "soni")
-            {
-                user = new UserModel { UserName = "vishal", Password = "123", Email = "vk@gmail.com" };
-            }
+            //if(login.UserName == "vk" && login.Password == "soni")
+            //{
+            //    user = new UserModel { UserName = "vishal", Password = "123", Email = "vk@gmail.com" };
+            //}
             return user;
         }
-        [Authorize]
+        [Authorize(Roles = "User")]
         [HttpPost("Post")]
         public string Post()
         {
@@ -89,7 +89,7 @@ namespace JWTAuth_Using_Core3._0.Controllers
             var userName = claimList[0].Value;
             return "Welcome To:" + userName;
         }
-        [Authorize]
+        [Authorize(Roles = "Administrator")]
         [HttpGet("GetValue")]
         public ActionResult<IEnumerable<string>> Get()
         {
